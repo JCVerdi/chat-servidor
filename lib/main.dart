@@ -1,7 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io' as io;
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:record/record.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
@@ -208,7 +211,7 @@ class UserSelectionScreen extends StatelessWidget {
 }
 
 // -----------------------------------------------------------------------------
-// PANTALLA 3: CHAT CON SOPORTE COMPLETO PARA ARCHIVOS, IMÁGENES Y NOTAS DE VOZ
+// PANTALLA 3: CHAT CON SOPORTE COMPLETO (COMPATIBLE WEB Y MÓVIL)
 // -----------------------------------------------------------------------------
 class ChatScreen extends StatefulWidget {
   final String username;
@@ -303,7 +306,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (type == 'text') _messageController.clear();
   }
 
-  // --- LÓGICA DE AUDIOS ---
+  // --- LÓGICA DE GRABACIÓN DE VOZ (MÓVIL Y WEB) ---
   Future<void> _startRecording() async {
     try {
       if (await _audioRecorder.hasPermission()) {
@@ -334,11 +337,22 @@ class _ChatScreenState extends State<ChatScreen> {
     final path = await _audioRecorder.stop();
 
     if (path != null) {
-      final bytes = await _audioRecorder.listDelegate?.call(path); // Obtener bytes grabados
+      Uint8List? bytes;
+
+      if (kIsWeb) {
+        final response = await NetworkAssetBundle(Uri.parse(path)).load("");
+        bytes = response.buffer.asUint8List();
+      } else {
+        final file = io.File(path);
+        if (await file.exists()) {
+          bytes = await file.readAsBytes();
+        }
+      }
+
       if (bytes != null) {
         final base64Audio = base64Encode(bytes);
         final durationText = '${_recordingSeconds ~/ 60}:${(_recordingSeconds % 60).toString().padLeft(2, '0')}';
-        
+
         _sendMessage(
           type: 'audio',
           fileData: base64Audio,
@@ -362,7 +376,7 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  // --- LÓGICA DE ARCHIVOS / IMÁGENES ---
+  // --- LÓGICA DE SELECCIÓN DE ARCHIVOS E IMÁGENES ---
   Future<void> _pickAndSendFile(FileType type) async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: type,
@@ -400,6 +414,15 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white.withOpacity(0.8),
         elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Color(0xFFB61722)),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const UserSelectionScreen()),
+            );
+          },
+        ),
         title: Text('Chat Privado (${widget.username})', style: const TextStyle(color: Color(0xFFB61722))),
       ),
       body: SafeArea(
@@ -463,7 +486,7 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
             
-            // BARRA DE ENTRADA / GRABACIÓN
+            // BARRA DE INGRESO DE TEXTO / GRABACIÓN DE VOZ
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               color: Colors.white.withOpacity(0.8),
@@ -475,7 +498,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // Vista de la barra cuando se está grabando audio
   Widget _buildRecordingBar() {
     final minutes = (_recordingSeconds ~/ 60).toString().padLeft(2, '0');
     final seconds = (_recordingSeconds % 60).toString().padLeft(2, '0');
@@ -505,7 +527,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // Vista normal de la barra de mensajes
   Widget _buildInputBar() {
     return Row(
       children: [
@@ -574,7 +595,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  // Renderizar contenido según tipo de mensaje
   Widget _buildMessageContent(String type, Map<String, dynamic> msg, Color textColor) {
     if (type == 'image' && msg['fileData'] != null) {
       final bytes = base64Decode(msg['fileData']);
