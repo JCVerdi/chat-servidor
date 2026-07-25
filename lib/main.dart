@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
-// 1. URL Corregida con su comilla final
 const String serverUrl = 'https://chat-servidor-zer7.onrender.com';
 
 void main() {
@@ -107,7 +106,6 @@ class _LoginScreenState extends State<LoginScreen> {
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Container(
-                // 2. Corregido: maxWidth dentro de constraints
                 constraints: const BoxConstraints(maxWidth: 420),
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
@@ -267,7 +265,6 @@ class UserSelectionScreen extends StatelessWidget {
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
-                  // 3. Corregido: white50 -> white.withOpacity(0.5)
                   decoration: BoxDecoration(color: Colors.white.withOpacity(0.5), shape: BoxShape.circle),
                   child: const Icon(Icons.chat_bubble_outline, color: Color(0xFFEF4444), size: 36),
                 ),
@@ -313,7 +310,6 @@ class UserSelectionScreen extends StatelessWidget {
                             const SizedBox(height: 12),
                             const Text(
                               'ROJO',
-                              // 4. Corregido: FontWeight.black en lugar de Color
                               style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 2),
                             ),
                             const Text(
@@ -353,7 +349,6 @@ class UserSelectionScreen extends StatelessWidget {
                             const SizedBox(height: 12),
                             const Text(
                               'ROSA',
-                              // 4. Corregido: FontWeight.w900 en lugar de FontWeight.black
                               style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.black87, letterSpacing: 2),
                             ),
                             const Text(
@@ -376,7 +371,7 @@ class UserSelectionScreen extends StatelessWidget {
 }
 
 // -----------------------------------------------------------------------------
-// PANTALLA 3: CHAT CON TICS DE ESTADO
+// PANTALLA 3: CHAT CON TICS Y BARRA DE CLIP/MICRÓFONO
 // -----------------------------------------------------------------------------
 class ChatScreen extends StatefulWidget {
   final String username;
@@ -583,61 +578,68 @@ class _ChatScreenState extends State<ChatScreen> {
                 },
               ),
             ),
-            // Barra para escribir con clip y micrófono añadidos
-Container(
-  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-  color: Colors.white.withOpacity(0.8),
-  child: Row(
-    children: [
-      // 📎 Botón para adjuntar archivos
-      IconButton(
-        icon: const Icon(Icons.attach_file, color: Color(0xFFB61722)),
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Función de adjuntar archivo próxima...')),
-          );
-        },
-      ),
-      
-      // Caja de texto
-      Expanded(
-        child: TextField(
-          controller: _messageController,
-          decoration: InputDecoration(
-            hintText: 'Escribe un mensaje...',
-            fillColor: const Color(0xFFE0F2FE).withOpacity(0.5),
-            filled: true,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(24),
-              borderSide: BorderSide.none,
+            
+            // BARRA INFERIOR CON CLIP Y MICRÓFONO INCLUIDOS
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              color: Colors.white.withOpacity(0.8),
+              child: Row(
+                children: [
+                  // 📎 Botón para adjuntar archivos
+                  IconButton(
+                    icon: const Icon(Icons.attach_file, color: Color(0xFFB61722)),
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Función de adjuntar archivo próxima...')),
+                      );
+                    },
+                  ),
+                  
+                  // Caja de texto
+                  Expanded(
+                    child: TextField(
+                      controller: _messageController,
+                      decoration: InputDecoration(
+                        hintText: 'Escribe un mensaje...',
+                        fillColor: const Color(0xFFE0F2FE).withOpacity(0.5),
+                        filled: true,
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                      onSubmitted: (_) => _sendMessage(),
+                    ),
+                  ),
+                  
+                  const SizedBox(width: 4),
+
+                  // 🎤 Botón para grabar audio
+                  IconButton(
+                    icon: const Icon(Icons.mic, color: Color(0xFFB61722)),
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Función de grabar audio próxima...')),
+                      );
+                    },
+                  ),
+
+                  // 🚀 Botón para enviar texto
+                  CircleAvatar(
+                    backgroundColor: const Color(0xFFB61722),
+                    radius: 20,
+                    child: IconButton(
+                      icon: const Icon(Icons.send, color: Colors.white, size: 16),
+                      onPressed: _sendMessage,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          onSubmitted: (_) => _sendMessage(),
+          ],
         ),
       ),
-      
-      const SizedBox(width: 4),
-
-      // 🎤 Botón para grabar audio
-      IconButton(
-        icon: const Icon(Icons.mic, color: Color(0xFFB61722)),
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Función de grabar audio próxima...')),
-          );
-        },
-      ),
-
-      // 🚀 Botón para enviar texto
-      CircleAvatar(
-        backgroundColor: const Color(0xFFB61722),
-        radius: 20,
-        child: IconButton(
-          icon: const Icon(Icons.send, color: Colors.white, size: 16),
-          onPressed: _sendMessage,
-        ),
-      ),
-    ],
-  ),
-),
+    );
+  }
+}
