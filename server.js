@@ -4,60 +4,67 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, { cors: { origin: '*' } });
 
-// Solo 2 tokens válidos para vosotros dos
-const VALID_TOKENS = ['USER_1_TOKEN', 'USER_2_TOKEN'];
-const activeUsers = new Map(); // token -> socketId
+// Configuración de Socket.io con soporte para archivos/imágenes de hasta 10 MB
+const io = new Server(server, {
+  maxHttpBufferSize: 1e7, // Limitador de peso máximo por paquete (10 MB)
+  cors: {
+    origin: "*", 
+    methods: ["GET", "POST"]
+  }
+});
 
+// "Base de datos" en memoria para validar usuarios y guardar sus sockets
+const users = {
+  'USER_1_TOKEN': { name: 'ROJO', socketId: null },
+  'USER_2_TOKEN': { name: 'ROSA', socketId: null }
+};
+
+// Middleware para autenticar al usuario mediante el token recibido en los headers
 io.use((socket, next) => {
-  const token = socket.handshake.auth.token;
-  if (VALID_TOKENS.includes(token)) {
+  const token = socket.handshake.headers.token;
+  if (token && users[token]) {
     socket.token = token;
     return next();
   }
-  next(new Error('Acceso no autorizado'));
+  return next(new Error('Autenticación fallida: Token inválido'));
 });
 
 io.on('connection', (socket) => {
-  activeUsers.set(socket.token, socket.id);
-  console.log(`🟢 Usuario conectado: ${socket.token}`);
+  const token = socket.token;
+  users[token].socketId = socket.id;
+  console.log(`Usuario conectado: ${users[token].name} (Socket ID: ${socket.id})`);
 
-  // 1. Manejo de envío de mensajes
+  // Evento para enviar mensaje (texto, imágenes o archivos)
   socket.on('send_message', (data) => {
-    const recipientToken = socket.token === 'USER_1_TOKEN' ? 'USER_2_TOKEN' : 'USER_1_TOKEN';
-    const recipientSocketId = activeUsers.get(recipientToken);
+    // Determinar quién es el destinatario (el usuario opuesto)
+    const recipientToken = token === 'USER_1_TOKEN' ? 'USER_2_TOKEN' : 'USER_1_TOKEN';
+    const recipientSocketId = users[recipientToken].socketId;
 
-    // Creamos el mensaje con ID y estado no leído
-    const messageData = {
-      id: data.id || Date.now().toString(),
-      sender: socket.token,
-      text: data.text || data, // Admite si le mandas texto directo o un objeto
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      read: false
-    };
-
-    // Enviar al destinatario (si está conectado)
+    // Si el destinatario está conectado, le enviamos el mensaje
     if (recipientSocketId) {
-      io.to(recipientSocketId).emit('receive_message', messageData);
+      io.to(recipientSocketId).emit('receive_message', data);
     }
   });
 
-  // 2. NUEVO: Evento para avisar que el destinatario ya leyó el mensaje
+  // Evento para marcar mensaje como leído (tics verdes)
   socket.on('mark_as_read', (data) => {
-    const senderToken = socket.token === 'USER_1_TOKEN' ? 'USER_2_TOKEN' : 'USER_1_TOKEN';
-    const senderSocketId = activeUsers.get(senderToken);
+    const senderToken = token === 'USER_1_TOKEN' ? 'USER_2_TOKEN' : 'USER_1_TOKEN';
+    const senderSocketId = users[senderToken].socketId;
 
-    // Le notificamos únicamente a la persona que envió el mensaje original
     if (senderSocketId) {
       io.to(senderSocketId).emit('message_read', { id: data.id });
     }
   });
 
+  // Evento al desconectarse
   socket.on('disconnect', () => {
-    activeUsers.delete(socket.token);
-    console.log(`🔴 Usuario desconectado: ${socket.token}`);
+    console.log(`Usuario desconectado: ${users[token].name}`);
+    users[token].socketId = null;
   });
 });
 
-server.listen(3000, () => console.log('🚀 Servidor de Chat listo en puerto 3000'));
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`Servidor de chat corriendo en el puerto ${PORT}`);
+});
