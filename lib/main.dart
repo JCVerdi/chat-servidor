@@ -583,41 +583,61 @@ class _ChatScreenState extends State<ChatScreen> {
                 },
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              color: Colors.white.withOpacity(0.8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      decoration: InputDecoration(
-                        hintText: 'Escribe un mensaje...',
-                        fillColor: const Color(0xFFE0F2FE).withOpacity(0.5),
-                        filled: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                      onSubmitted: (_) => _sendMessage(),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  CircleAvatar(
-                    backgroundColor: const Color(0xFFB61722),
-                    child: IconButton(
-                      icon: const Icon(Icons.send, color: Colors.white, size: 18),
-                      onPressed: _sendMessage,
-                    ),
-                  ),
-                ],
-              ),
+            // Barra para escribir con clip y micrófono añadidos
+Container(
+  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+  color: Colors.white.withOpacity(0.8),
+  child: Row(
+    children: [
+      // 📎 Botón para adjuntar archivos
+      IconButton(
+        icon: const Icon(Icons.attach_file, color: Color(0xFFB61722)),
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Función de adjuntar archivo próxima...')),
+          );
+        },
+      ),
+      
+      // Caja de texto
+      Expanded(
+        child: TextField(
+          controller: _messageController,
+          decoration: InputDecoration(
+            hintText: 'Escribe un mensaje...',
+            fillColor: const Color(0xFFE0F2FE).withOpacity(0.5),
+            filled: true,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(24),
+              borderSide: BorderSide.none,
             ),
-          ],
+          ),
+          onSubmitted: (_) => _sendMessage(),
         ),
       ),
-    );
-  }
-}
+      
+      const SizedBox(width: 4),
+
+      // 🎤 Botón para grabar audio
+      IconButton(
+        icon: const Icon(Icons.mic, color: Color(0xFFB61722)),
+        onPressed: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Función de grabar audio próxima...')),
+          );
+        },
+      ),
+
+      // 🚀 Botón para enviar texto
+      CircleAvatar(
+        backgroundColor: const Color(0xFFB61722),
+        radius: 20,
+        child: IconButton(
+          icon: const Icon(Icons.send, color: Colors.white, size: 16),
+          onPressed: _sendMessage,
+        ),
+      ),
+    ],
+  ),
+),
