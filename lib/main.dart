@@ -1,4 +1,4 @@
-import 'dart:async';
+import 'dart0:async';
 import 'dart:convert';
 import 'dart:io' as io;
 import 'package:file_picker/file_picker.dart';
@@ -378,7 +378,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // --- LÓGICA DE SELECCIÓN DE ARCHIVOS E IMÁGENES ---
   Future<void> _pickAndSendFile(FileType type) async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
+    // Usamos FilePicker.instance para ser compatible con versiones recientes
+    FilePickerResult? result = await FilePicker.instance.pickFiles(
       type: type,
       withData: true,
     );
