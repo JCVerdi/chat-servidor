@@ -1,7 +1,8 @@
+import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
-// 1. URL Corregida con su comilla final
 const String serverUrl = 'https://chat-servidor-zer7.onrender.com';
 
 void main() {
@@ -47,7 +48,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _submit() {
     final inputPassword = _passwordController.text.trim();
-
     if (inputPassword.isEmpty) return;
 
     setState(() {
@@ -77,159 +77,74 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFE0F2FE),
-      body: Stack(
-        children: [
-          Positioned(
-            top: -50,
-            right: -50,
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFDA3437).withOpacity(0.15),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -50,
-            left: -50,
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFF506CDB).withOpacity(0.15),
-              ),
-            ),
-          ),
-          Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Container(
-                // 2. Corregido: maxWidth dentro de constraints
-                constraints: const BoxConstraints(maxWidth: 420),
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.65),
-                  borderRadius: BorderRadius.circular(32),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 30,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 420),
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.65),
+              borderRadius: BorderRadius.circular(32),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 30,
+                  offset: const Offset(0, 10),
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFB61722),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFB61722).withOpacity(0.3),
-                            blurRadius: 15,
-                            offset: const Offset(0, 5),
-                          )
-                        ],
-                      ),
-                      child: const Icon(Icons.lock, color: Colors.white, size: 40),
-                    ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'Bienvenido de nuevo',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0C1E26),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Introduce tu contraseña para continuar',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 15, color: Colors.black54),
-                    ),
-                    const SizedBox(height: 32),
-                    TextField(
-                      controller: _passwordController,
-                      obscureText: _obscureText,
-                      onSubmitted: (_) => _submit(),
-                      decoration: InputDecoration(
-                        hintText: 'Contraseña',
-                        errorText: _errorMessage,
-                        filled: true,
-                        fillColor: Colors.white.withOpacity(0.9),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: Colors.black.withOpacity(0.1)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide(color: Colors.black.withOpacity(0.08)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: const BorderSide(color: Color(0xFFB61722), width: 1.5),
-                        ),
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscureText ? Icons.visibility : Icons.visibility_off,
-                            color: Colors.black45,
-                          ),
-                          onPressed: () => setState(() => _obscureText = !_obscureText),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 54,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFB61722),
-                          elevation: 4,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        onPressed: _isLoading ? null : _submit,
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2.5),
-                              )
-                            : const Text(
-                                'DESBLOQUEAR CUENTA',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.1,
-                                ),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text(
-                        '¿Has olvidado tu contraseña?',
-                        style: TextStyle(color: Color(0xFFB61722), fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ],
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFB61722),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Icon(Icons.lock, color: Colors.white, size: 40),
                 ),
-              ),
+                const SizedBox(height: 24),
+                const Text(
+                  'Bienvenido de nuevo',
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF0C1E26)),
+                ),
+                const SizedBox(height: 32),
+                TextField(
+                  controller: _passwordController,
+                  obscureText: _obscureText,
+                  onSubmitted: (_) => _submit(),
+                  decoration: InputDecoration(
+                    hintText: 'Contraseña',
+                    errorText: _errorMessage,
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.9),
+                    suffixIcon: IconButton(
+                      icon: Icon(_obscureText ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () => setState(() => _obscureText = !_obscureText),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 54,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFB61722),
+                    ),
+                    onPressed: _isLoading ? null : _submit,
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : const Text('DESBLOQUEAR CUENTA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -265,107 +180,22 @@ class UserSelectionScreen extends StatelessWidget {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  // 3. Corregido: white50 -> white.withOpacity(0.5)
-                  decoration: BoxDecoration(color: Colors.white.withOpacity(0.5), shape: BoxShape.circle),
-                  child: const Icon(Icons.chat_bubble_outline, color: Color(0xFFEF4444), size: 36),
-                ),
-                const SizedBox(height: 16),
                 const Text(
                   'Elige tu identidad',
                   style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Color(0xFF0C1E26)),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Selecciona un usuario para comenzar la conversación.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 15, color: Colors.black54),
-                ),
                 const SizedBox(height: 40),
-                Column(
-                  children: [
-                    // USUARIO ROJO
-                    InkWell(
-                      onTap: () => _selectUser(context, 'ROJO', 'USER_1_TOKEN', const Color(0xFF1E40AF)),
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEF4444),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFEF4444).withOpacity(0.3),
-                              blurRadius: 15,
-                              offset: const Offset(0, 6),
-                            )
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: const BoxDecoration(color: Colors.white24, shape: BoxShape.circle),
-                              child: const Icon(Icons.person, color: Colors.white, size: 32),
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'ROJO',
-                              // 4. Corregido: FontWeight.black en lugar de Color
-                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 2),
-                            ),
-                            const Text(
-                              'USUARIO PRINCIPAL',
-                              style: TextStyle(fontSize: 11, color: Colors.white70, letterSpacing: 1),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    // USUARIO ROSA
-                    InkWell(
-                      onTap: () => _selectUser(context, 'ROSA', 'USER_2_TOKEN', const Color(0xFFFBCFE8)),
-                      borderRadius: BorderRadius.circular(20),
-                      child: Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFBCFE8),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 15,
-                              offset: const Offset(0, 6),
-                            )
-                          ],
-                        ),
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: const BoxDecoration(color: Colors.black12, shape: BoxShape.circle),
-                              child: const Icon(Icons.person_outline, color: Colors.black87, size: 32),
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'ROSA',
-                              // 4. Corregido: FontWeight.w900 en lugar de FontWeight.black
-                              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.black87, letterSpacing: 2),
-                            ),
-                            const Text(
-                              'USUARIO SECUNDARIO',
-                              style: TextStyle(fontSize: 11, color: Colors.black54, letterSpacing: 1),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                )
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF4444), minimumSize: const Size.fromHeight(60)),
+                  onPressed: () => _selectUser(context, 'ROJO', 'USER_1_TOKEN', const Color(0xFF1E40AF)),
+                  child: const Text('USUARIO ROJO', style: TextStyle(color: Colors.white, fontSize: 18)),
+                ),
+                const SizedBox(height: 20),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFBCFE8), minimumSize: const Size.fromHeight(60)),
+                  onPressed: () => _selectUser(context, 'ROSA', 'USER_2_TOKEN', const Color(0xFFFBCFE8)),
+                  child: const Text('USUARIO ROSA', style: TextStyle(color: Colors.black87, fontSize: 18)),
+                ),
               ],
             ),
           ),
@@ -376,7 +206,7 @@ class UserSelectionScreen extends StatelessWidget {
 }
 
 // -----------------------------------------------------------------------------
-// PANTALLA 3: CHAT CON TICS DE ESTADO
+// PANTALLA 3: CHAT CON SOPORTE PARA ADJUNTAR ARCHIVOS/IMÁGENES
 // -----------------------------------------------------------------------------
 class ChatScreen extends StatefulWidget {
   final String username;
@@ -424,7 +254,6 @@ class _ChatScreenState extends State<ChatScreen> {
         setState(() {
           _messages.add(msg);
         });
-
         socket.emit('mark_as_read', {'id': msg['id']});
       }
     });
@@ -442,17 +271,18 @@ class _ChatScreenState extends State<ChatScreen> {
     });
   }
 
-  void _sendMessage() {
-    if (_messageController.text.trim().isEmpty) return;
+  void _sendMessage({String type = 'text', String? fileData, String? fileName}) {
+    if (type == 'text' && _messageController.text.trim().isEmpty) return;
 
     final String msgId = DateTime.now().millisecondsSinceEpoch.toString();
-    final String msgText = _messageController.text.trim();
     final String currentTime = '${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}';
 
     final messageData = {
       'id': msgId,
       'sender': widget.token,
-      'text': msgText,
+      'type': type, // 'text', 'image', 'file'
+      'text': type == 'text' ? _messageController.text.trim() : (fileName ?? ''),
+      'fileData': fileData,
       'time': currentTime,
       'read': false,
     };
@@ -462,7 +292,29 @@ class _ChatScreenState extends State<ChatScreen> {
     });
 
     socket.emit('send_message', messageData);
-    _messageController.clear();
+    if (type == 'text') _messageController.clear();
+  }
+
+  // Lógica para seleccionar y enviar archivos/imágenes (compatible Web & Mobile)
+  Future<void> _pickAndSendFile(FileType type) async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: type,
+      withData: true, // Requerido para Web para obtener los bytes en memoria
+    );
+
+    if (result != null && result.files.isNotEmpty) {
+      final file = result.files.first;
+      if (file.bytes != null) {
+        final base64String = base64Encode(file.bytes!);
+        final isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp'].contains(file.extension?.toLowerCase());
+
+        _sendMessage(
+          type: isImage ? 'image' : 'file',
+          fileData: base64String,
+          fileName: file.name,
+        );
+      }
+    }
   }
 
   @override
@@ -479,40 +331,7 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white.withOpacity(0.8),
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFFB61722)),
-          onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const UserSelectionScreen()),
-            );
-          },
-        ),
-        title: Row(
-          children: [
-            CircleAvatar(
-              backgroundColor: const Color(0xFFB61722).withOpacity(0.2),
-              child: Text(
-                widget.username[0],
-                style: const TextStyle(color: Color(0xFFB61722), fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Chat Privado',
-                  style: TextStyle(color: Color(0xFFB61722), fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                Text(
-                  'Conectado como ${widget.username}',
-                  style: const TextStyle(color: Colors.black54, fontSize: 12),
-                ),
-              ],
-            ),
-          ],
-        ),
+        title: Text('Chat Privado (${widget.username})', style: const TextStyle(color: Color(0xFFB61722))),
       ),
       body: SafeArea(
         child: Column(
@@ -526,6 +345,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   final isMe = msg['sender'] == widget.token;
                   final isRosa = msg['sender'] == 'USER_2_TOKEN';
                   final isRead = msg['read'] == true;
+                  final type = msg['type'] ?? 'text';
 
                   final bubbleColor = isRosa ? const Color(0xFFFBCFE8) : const Color(0xFF1E40AF);
                   final textColor = isRosa ? Colors.black : Colors.white;
@@ -539,22 +359,12 @@ class _ChatScreenState extends State<ChatScreen> {
                         crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                         children: [
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
                               color: bubbleColor,
                               borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.04),
-                                  blurRadius: 4,
-                                  offset: const Offset(0, 2),
-                                )
-                              ],
                             ),
-                            child: Text(
-                              msg['text'] ?? '',
-                              style: TextStyle(color: textColor, fontSize: 15),
-                            ),
+                            child: _buildMessageContent(type, msg, textColor),
                           ),
                           Padding(
                             padding: const EdgeInsets.only(left: 4, right: 4, top: 2),
@@ -583,11 +393,45 @@ class _ChatScreenState extends State<ChatScreen> {
                 },
               ),
             ),
+            
+            // BARRA DE ENTRADA CON MENÚ DESPLEGABLE DE ADJUNTOS
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               color: Colors.white.withOpacity(0.8),
               child: Row(
                 children: [
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.attach_file, color: Color(0xFFB61722)),
+                    onSelected: (value) {
+                      if (value == 'image') {
+                        _pickAndSendFile(FileType.image);
+                      } else if (value == 'file') {
+                        _pickAndSendFile(FileType.any);
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: 'image',
+                        child: Row(
+                          children: [
+                            Icon(Icons.image, color: Color(0xFFB61722)),
+                            SizedBox(width: 8),
+                            Text('Enviar Imagen'),
+                          ],
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'file',
+                        child: Row(
+                          children: [
+                            Icon(Icons.insert_drive_file, color: Color(0xFFB61722)),
+                            SizedBox(width: 8),
+                            Text('Enviar Documento'),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                   Expanded(
                     child: TextField(
                       controller: _messageController,
@@ -604,12 +448,13 @@ class _ChatScreenState extends State<ChatScreen> {
                       onSubmitted: (_) => _sendMessage(),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 4),
                   CircleAvatar(
                     backgroundColor: const Color(0xFFB61722),
+                    radius: 20,
                     child: IconButton(
-                      icon: const Icon(Icons.send, color: Colors.white, size: 18),
-                      onPressed: _sendMessage,
+                      icon: const Icon(Icons.send, color: Colors.white, size: 16),
+                      onPressed: () => _sendMessage(),
                     ),
                   ),
                 ],
@@ -617,6 +462,40 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  // Renderizar contenido según tipo de mensaje
+  Widget _buildMessageContent(String type, Map<String, dynamic> msg, Color textColor) {
+    if (type == 'image' && msg['fileData'] != null) {
+      final bytes = base64Decode(msg['fileData']);
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.memory(bytes, fit: BoxFit.cover),
+      );
+    } else if (type == 'file') {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.insert_drive_file, color: textColor),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              msg['text'] ?? 'Archivo adjunto',
+              style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Text(
+        msg['text'] ?? '',
+        style: TextStyle(color: textColor, fontSize: 15),
       ),
     );
   }
