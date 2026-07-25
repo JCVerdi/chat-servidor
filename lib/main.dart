@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:record/record.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 const String serverUrl = 'https://chat-servidor-zer7.onrender.com';
@@ -206,7 +208,7 @@ class UserSelectionScreen extends StatelessWidget {
 }
 
 // -----------------------------------------------------------------------------
-// PANTALLA 3: CHAT CON SOPORTE PARA ADJUNTAR ARCHIVOS/IMÁGENES
+// PANTALLA 3: CHAT CON SOPORTE COMPLETO PARA ARCHIVOS, IMÁGENES Y NOTAS DE VOZ
 // -----------------------------------------------------------------------------
 class ChatScreen extends StatefulWidget {
   final String username;
@@ -228,6 +230,12 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final List<Map<String, dynamic>> _messages = [];
   late IO.Socket socket;
+
+  // Lógica de grabación de voz
+  final AudioRecorder _audioRecorder = AudioRecorder();
+  bool _isRecording = false;
+  int _recordingSeconds = 0;
+  Timer? _recordingTimer;
 
   @override
   void initState() {
@@ -280,7 +288,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final messageData = {
       'id': msgId,
       'sender': widget.token,
-      'type': type, // 'text', 'image', 'file'
+      'type': type, // 'text', 'image', 'file', 'audio'
       'text': type == 'text' ? _messageController.text.trim() : (fileName ?? ''),
       'fileData': fileData,
       'time': currentTime,
@@ -295,11 +303,70 @@ class _ChatScreenState extends State<ChatScreen> {
     if (type == 'text') _messageController.clear();
   }
 
-  // Lógica para seleccionar y enviar archivos/imágenes (compatible Web & Mobile)
+  // --- LÓGICA DE AUDIOS ---
+  Future<void> _startRecording() async {
+    try {
+      if (await _audioRecorder.hasPermission()) {
+        await _audioRecorder.start(
+          const RecordConfig(encoder: AudioEncoder.aacLc),
+          path: '',
+        );
+        setState(() {
+          _isRecording = true;
+          _recordingSeconds = 0;
+        });
+
+        _recordingTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          setState(() {
+            _recordingSeconds++;
+          });
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al iniciar grabación: $e')),
+      );
+    }
+  }
+
+  Future<void> _stopAndSendRecording() async {
+    _recordingTimer?.cancel();
+    final path = await _audioRecorder.stop();
+
+    if (path != null) {
+      final bytes = await _audioRecorder.listDelegate?.call(path); // Obtener bytes grabados
+      if (bytes != null) {
+        final base64Audio = base64Encode(bytes);
+        final durationText = '${_recordingSeconds ~/ 60}:${(_recordingSeconds % 60).toString().padLeft(2, '0')}';
+        
+        _sendMessage(
+          type: 'audio',
+          fileData: base64Audio,
+          fileName: 'Nota de voz ($durationText)',
+        );
+      }
+    }
+
+    setState(() {
+      _isRecording = false;
+      _recordingSeconds = 0;
+    });
+  }
+
+  Future<void> _cancelRecording() async {
+    _recordingTimer?.cancel();
+    await _audioRecorder.stop();
+    setState(() {
+      _isRecording = false;
+      _recordingSeconds = 0;
+    });
+  }
+
+  // --- LÓGICA DE ARCHIVOS / IMÁGENES ---
   Future<void> _pickAndSendFile(FileType type) async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: type,
-      withData: true, // Requerido para Web para obtener los bytes en memoria
+      withData: true,
     );
 
     if (result != null && result.files.isNotEmpty) {
@@ -319,6 +386,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    _recordingTimer?.cancel();
+    _audioRecorder.dispose();
     socket.dispose();
     _messageController.dispose();
     super.dispose();
@@ -394,75 +463,114 @@ class _ChatScreenState extends State<ChatScreen> {
               ),
             ),
             
-            // BARRA DE ENTRADA CON MENÚ DESPLEGABLE DE ADJUNTOS
+            // BARRA DE ENTRADA / GRABACIÓN
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               color: Colors.white.withOpacity(0.8),
+              child: _isRecording ? _buildRecordingBar() : _buildInputBar(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Vista de la barra cuando se está grabando audio
+  Widget _buildRecordingBar() {
+    final minutes = (_recordingSeconds ~/ 60).toString().padLeft(2, '0');
+    final seconds = (_recordingSeconds % 60).toString().padLeft(2, '0');
+
+    return Row(
+      children: [
+        IconButton(
+          icon: const Icon(Icons.delete, color: Colors.red),
+          onPressed: _cancelRecording,
+        ),
+        const Icon(Icons.fiber_manual_record, color: Colors.red, size: 18),
+        const SizedBox(width: 8),
+        Text(
+          'Grabando: $minutes:$seconds',
+          style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+        ),
+        const Spacer(),
+        CircleAvatar(
+          backgroundColor: const Color(0xFF10B981),
+          radius: 20,
+          child: IconButton(
+            icon: const Icon(Icons.send, color: Colors.white, size: 16),
+            onPressed: _stopAndSendRecording,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Vista normal de la barra de mensajes
+  Widget _buildInputBar() {
+    return Row(
+      children: [
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.attach_file, color: Color(0xFFB61722)),
+          onSelected: (value) {
+            if (value == 'image') {
+              _pickAndSendFile(FileType.image);
+            } else if (value == 'file') {
+              _pickAndSendFile(FileType.any);
+            }
+          },
+          itemBuilder: (context) => [
+            const PopupMenuItem(
+              value: 'image',
               child: Row(
                 children: [
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.attach_file, color: Color(0xFFB61722)),
-                    onSelected: (value) {
-                      if (value == 'image') {
-                        _pickAndSendFile(FileType.image);
-                      } else if (value == 'file') {
-                        _pickAndSendFile(FileType.any);
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: 'image',
-                        child: Row(
-                          children: [
-                            Icon(Icons.image, color: Color(0xFFB61722)),
-                            SizedBox(width: 8),
-                            Text('Enviar Imagen'),
-                          ],
-                        ),
-                      ),
-                      const PopupMenuItem(
-                        value: 'file',
-                        child: Row(
-                          children: [
-                            Icon(Icons.insert_drive_file, color: Color(0xFFB61722)),
-                            SizedBox(width: 8),
-                            Text('Enviar Documento'),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      decoration: InputDecoration(
-                        hintText: 'Escribe un mensaje...',
-                        fillColor: const Color(0xFFE0F2FE).withOpacity(0.5),
-                        filled: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                      onSubmitted: (_) => _sendMessage(),
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  CircleAvatar(
-                    backgroundColor: const Color(0xFFB61722),
-                    radius: 20,
-                    child: IconButton(
-                      icon: const Icon(Icons.send, color: Colors.white, size: 16),
-                      onPressed: () => _sendMessage(),
-                    ),
-                  ),
+                  Icon(Icons.image, color: Color(0xFFB61722)),
+                  SizedBox(width: 8),
+                  Text('Enviar Imagen'),
+                ],
+              ),
+            ),
+            const PopupMenuItem(
+              value: 'file',
+              child: Row(
+                children: [
+                  Icon(Icons.insert_drive_file, color: Color(0xFFB61722)),
+                  SizedBox(width: 8),
+                  Text('Enviar Documento'),
                 ],
               ),
             ),
           ],
         ),
-      ),
+        Expanded(
+          child: TextField(
+            controller: _messageController,
+            decoration: InputDecoration(
+              hintText: 'Escribe un mensaje...',
+              fillColor: const Color(0xFFE0F2FE).withOpacity(0.5),
+              filled: true,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(24),
+                borderSide: BorderSide.none,
+              ),
+            ),
+            onSubmitted: (_) => _sendMessage(),
+          ),
+        ),
+        const SizedBox(width: 4),
+        IconButton(
+          icon: const Icon(Icons.mic, color: Color(0xFFB61722)),
+          onPressed: _startRecording,
+        ),
+        CircleAvatar(
+          backgroundColor: const Color(0xFFB61722),
+          radius: 20,
+          child: IconButton(
+            icon: const Icon(Icons.send, color: Colors.white, size: 16),
+            onPressed: () => _sendMessage(),
+          ),
+        ),
+      ],
     );
   }
 
@@ -473,6 +581,18 @@ class _ChatScreenState extends State<ChatScreen> {
       return ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Image.memory(bytes, fit: BoxFit.cover),
+      );
+    } else if (type == 'audio') {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.play_arrow, color: textColor, size: 28),
+          const SizedBox(width: 8),
+          Text(
+            msg['text'] ?? 'Nota de voz',
+            style: TextStyle(color: textColor, fontWeight: FontWeight.bold),
+          ),
+        ],
       );
     } else if (type == 'file') {
       return Row(
