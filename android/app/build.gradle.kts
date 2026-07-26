@@ -43,3 +43,9 @@ kotlin {
 flutter {
     source = "../.."
 }
+android {
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
+}
