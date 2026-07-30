@@ -5,13 +5,17 @@ const { Server } = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 
-// Configuración de Socket.io con soporte para archivos/imágenes de hasta 10 MB
+// Configuración de Socket.io adaptada para Web (iOS/Android/Navegadores)
 const io = new Server(server, {
   maxHttpBufferSize: 1e7, // Limitador de peso máximo por paquete (10 MB)
   cors: {
     origin: "*", 
-    methods: ["GET", "POST"]
-  }
+    methods: ["GET", "POST"],
+    credentials: true
+  },
+  // Permitimos tanto 'polling' como 'websocket' para máxima compatibilidad
+  transports: ['polling', 'websocket'],
+  allowEIO3: true // Mantiene compatibilidad con versiones cliente de Socket.IO en Flutter Web
 });
 
 // "Base de datos" en memoria para validar usuarios y guardar sus sockets
@@ -20,20 +24,23 @@ const users = {
   'USER_2_TOKEN': { name: 'ROSA', socketId: null }
 };
 
-// Middleware para autenticar al usuario mediante el token recibido en los headers
+// Middleware para autenticar al usuario (soporta lectura desde headers y auth)
 io.use((socket, next) => {
-  const token = socket.handshake.headers.token;
+  const token = socket.handshake.headers.token || socket.handshake.auth?.token;
+  
   if (token && users[token]) {
     socket.token = token;
     return next();
   }
+  
+  console.log(`[AUTH ERROR] Intentó conectar con token no válido: ${token}`);
   return next(new Error('Autenticación fallida: Token inválido'));
 });
 
 io.on('connection', (socket) => {
   const token = socket.token;
   users[token].socketId = socket.id;
-  console.log(`Usuario conectado: ${users[token].name} (Socket ID: ${socket.id})`);
+  console.log(`✅ Usuario conectado: ${users[token].name} (Socket ID: ${socket.id})`);
 
   // Evento para enviar mensaje (texto, imágenes o archivos)
   socket.on('send_message', (data) => {
@@ -44,6 +51,9 @@ io.on('connection', (socket) => {
     // Si el destinatario está conectado, le enviamos el mensaje
     if (recipientSocketId) {
       io.to(recipientSocketId).emit('receive_message', data);
+      console.log(`📩 Mensaje enviado de ${users[token].name} a ${users[recipientToken].name}`);
+    } else {
+      console.log(`⚠️ ${users[recipientToken].name} no está conectado. El mensaje no se entregó en vivo.`);
     }
   });
 
@@ -58,13 +68,13 @@ io.on('connection', (socket) => {
   });
 
   // Evento al desconectarse
-  socket.on('disconnect', () => {
-    console.log(`Usuario desconectado: ${users[token].name}`);
+  socket.on('disconnect', (reason) => {
+    console.log(`❌ Usuario desconectado: ${users[token].name} (Razon: ${reason})`);
     users[token].socketId = null;
   });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
-  console.log(`Servidor de chat corriendo en el puerto ${PORT}`);
+  console.log(`🚀 Servidor de chat corriendo en el puerto ${PORT}`);
 });
