@@ -233,6 +233,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final List<Map<String, dynamic>> _messages = [];
   late socket_io.Socket socket;
+  bool _isConnected = false;
 
   // Lógica de grabación de voz
   final AudioRecorder _audioRecorder = AudioRecorder();
@@ -250,14 +251,30 @@ class _ChatScreenState extends State<ChatScreen> {
     socket = socket_io.io(
       serverUrl,
       socket_io.OptionBuilder()
-          .setTransports(['websocket'])
-          .disableAutoConnect()
+          .setTransports(['websocket', 'polling']) // Soporte completo para Render en Web y Móvil
+          .enableAutoConnect()
+          .enableReconnection()
           .setExtraHeaders({'token': widget.token})
           .build(),
     );
 
     socket.io.options?['token'] = widget.token;
-    socket.connect();
+
+    socket.onConnect((_) {
+      if (mounted) {
+        setState(() {
+          _isConnected = true;
+        });
+      }
+    });
+
+    socket.onDisconnect((_) {
+      if (mounted) {
+        setState(() {
+          _isConnected = false;
+        });
+      }
+    });
 
     socket.on('receive_message', (data) {
       if (mounted) {
@@ -381,7 +398,6 @@ class _ChatScreenState extends State<ChatScreen> {
 
   // --- LÓGICA DE SELECCIÓN DE ARCHIVOS E IMÁGENES ---
   Future<void> _pickAndSendFile(FileType type) async {
-    // Use the platform pickFiles method for compatibility with the file_picker package.
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: type,
       withData: true,
@@ -427,7 +443,20 @@ class _ChatScreenState extends State<ChatScreen> {
             );
           },
         ),
-        title: Text('Chat Privado (${widget.username})', style: const TextStyle(color: Color(0xFFB61722))),
+        title: Row(
+          children: [
+            Text('Chat (${widget.username})', style: const TextStyle(color: Color(0xFFB61722))),
+            const SizedBox(width: 8),
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _isConnected ? Colors.green : Colors.orange,
+              ),
+            ),
+          ],
+        ),
       ),
       body: SafeArea(
         child: Column(
