@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:record/record.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as socket_io;
 
 const String serverUrl = 'https://chat-servidor-zer7.onrender.com';
 
@@ -89,11 +89,11 @@ class _LoginScreenState extends State<LoginScreen> {
             constraints: const BoxConstraints(maxWidth: 420),
             padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.65),
+              color: Colors.white.withValues(alpha: 0.65),
               borderRadius: BorderRadius.circular(32),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 30,
                   offset: const Offset(0, 10),
                 ),
@@ -125,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     hintText: 'Contraseña',
                     errorText: _errorMessage,
                     filled: true,
-                    fillColor: Colors.white.withOpacity(0.9),
+                    fillColor: Colors.white.withValues(alpha: 0.9),
                     suffixIcon: IconButton(
                       icon: Icon(_obscureText ? Icons.visibility : Icons.visibility_off),
                       onPressed: () => setState(() => _obscureText = !_obscureText),
@@ -232,7 +232,7 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final List<Map<String, dynamic>> _messages = [];
-  late IO.Socket socket;
+  late socket_io.Socket socket;
 
   // Lógica de grabación de voz
   final AudioRecorder _audioRecorder = AudioRecorder();
@@ -247,9 +247,9 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _connectSocket() {
-    socket = IO.io(
+    socket = socket_io.io(
       serverUrl,
-      IO.OptionBuilder()
+      socket_io.OptionBuilder()
           .setTransports(['websocket'])
           .disableAutoConnect()
           .setExtraHeaders({'token': widget.token})
@@ -314,6 +314,8 @@ class _ChatScreenState extends State<ChatScreen> {
           const RecordConfig(encoder: AudioEncoder.aacLc),
           path: '',
         );
+        if (!mounted) return;
+
         setState(() {
           _isRecording = true;
           _recordingSeconds = 0;
@@ -326,6 +328,7 @@ class _ChatScreenState extends State<ChatScreen> {
         });
       }
     } catch (e) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al iniciar grabación: $e')),
       );
@@ -413,7 +416,7 @@ class _ChatScreenState extends State<ChatScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFE0F2FE),
       appBar: AppBar(
-        backgroundColor: Colors.white.withOpacity(0.8),
+        backgroundColor: Colors.white.withValues(alpha: 0.8),
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(0xFFB61722)),
@@ -490,7 +493,7 @@ class _ChatScreenState extends State<ChatScreen> {
             // BARRA DE INGRESO DE TEXTO / GRABACIÓN DE VOZ
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              color: Colors.white.withOpacity(0.8),
+              color: Colors.white.withValues(alpha: 0.8),
               child: _isRecording ? _buildRecordingBar() : _buildInputBar(),
             ),
           ],
@@ -568,7 +571,7 @@ class _ChatScreenState extends State<ChatScreen> {
             controller: _messageController,
             decoration: InputDecoration(
               hintText: 'Escribe un mensaje...',
-              fillColor: const Color(0xFFE0F2FE).withOpacity(0.5),
+              fillColor: const Color(0xFFE0F2FE).withValues(alpha: 0.5),
               filled: true,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               border: OutlineInputBorder(
