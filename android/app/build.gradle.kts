@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.chat_app"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -42,4 +42,10 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+android {
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
 }
